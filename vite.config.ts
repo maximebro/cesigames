@@ -11,11 +11,11 @@ export default defineConfig({
         // vueDevTools(),
     ],
     server: {
-        port: 3500,
+        port: 3000,
         strictPort: true,
     },
     preview: {
-        port: 3500,
+        port: 3000,
         host: '0.0.0.0',
     },
     resolve: {
