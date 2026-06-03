@@ -36,7 +36,7 @@
                     <div class="counter">
                         <v-btn class="counter-btn minus rounded" variant="outlined" icon="mdi-minus" size="small" tile @click="decrement(card)"/>
                         <v-number-input
-                            :id="`val-${card.id}`" :class="`counter-input counter-value${card.counter < 0 ? ' neg' : ''}`" style="max-width: fit-content;"
+                            v-bump="card.counter" :class="`counter-input counter-value${card.counter < 0 ? ' neg' : ''}`" style="max-width: fit-content;"
                             v-model="card.counter" density="compact" variant="plain" control-variant="hidden" hide-details :min="0" :step="1"
                             @update:model-value="counterChanged(card)"
                         />
@@ -111,30 +111,30 @@ async function counterChanged(card: CardType) {
     card.counter ??= 0;
     const docRef = doc(db, "cards", card.id);
     await updateDoc(docRef, { counter: card.counter });
-    playUpdateAnimation(card);
 }
 
 async function increment(card: CardType) {
     const docRef = doc(db, "cards", card.id);
     await updateDoc(docRef, { counter: card.counter + 1 });
-    playUpdateAnimation(card);
 }
 
 async function decrement(card: CardType) {
     const docRef = doc(db, "cards", card.id);
     await updateDoc(docRef, { counter: card.counter - 1 });
-    playUpdateAnimation(card);
 }
 
-function playUpdateAnimation(card: CardType) {
-    const el = document.getElementById('val-' + card.id);
-    if (el) {
-        el.classList.toggle('neg', card.counter < 0);
-        el.classList.remove('bump');
-        void el.offsetWidth; // reflow
-        el.classList.add('bump');
+const vBump = {
+  updated(el: HTMLElement, binding: any) {
+        if (binding.value === binding.oldValue) return;
+        
+        const inputEl = el.querySelector('input');
+        if (inputEl) {
+            inputEl.classList.remove('bump');
+            void inputEl.offsetWidth;
+            inputEl.classList.add('bump');
+        }
     }
-}
+};
 </script>
 
 
@@ -340,6 +340,10 @@ function playUpdateAnimation(card: CardType) {
     font-size: 1.5rem;
     text-align: center;
     padding: 0;
+}
+
+:deep(.counter-input input.bump) {
+    animation: bump 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .counter-value.bump {
