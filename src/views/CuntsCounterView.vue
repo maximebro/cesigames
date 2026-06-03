@@ -11,7 +11,14 @@
         </div>
 
         <v-row>
-            <v-col v-if="cards.length === 0" cols="12">
+            <v-col v-if="isLoading" cols="12" class="d-flex">
+                <div class="loading d-flex align-center ga-3 mx-auto">
+                    <v-progress-circular indeterminate color="#e8ff47"/>
+                    <p>Chargement en cours...</p>
+                </div>
+            </v-col>
+
+            <v-col v-else-if="cards.length === 0" cols="12">
                 <div class="empty">
                 <div class="big">☐</div>
                     <p>Aucune carte — crée-en une !</p>
@@ -20,11 +27,11 @@
 
             <v-col v-else v-for="card in cards" :key="card.id" cols="12" md="4" lg="3">
                 <div class="card">
-                    <v-btn class="btn-delete rounded" size="x-small" variant="text" title="Supprimer" density="comfortable" tile icon @click="deleteCard(card.id)">
+                    <v-btn class="btn-delete rounded" size="x-small" variant="text" title="Supprimer" density="comfortable" tile icon @click="deleteCard(card)">
                         <v-icon icon="mdi-trash-can"/>
                     </v-btn>
 
-                    <v-text-field v-model="card.title" class="card-title mt-n2" variant="plain" density="compact" placeholder="Titre de la carte..." @blur="save" hide-details/>
+                    <v-text-field v-model="card.title" class="card-title mt-n2" variant="plain" density="compact" placeholder="Titre de la carte..." @blur="updateTitle(card)" hide-details/>
 
                     <div class="counter">
                         <v-btn class="counter-btn minus rounded" variant="outlined" icon="mdi-minus" size="small" tile @click="decrement(card)"/>
@@ -39,47 +46,72 @@
 
 
 <script setup lang="ts">
-import { onMounted, ref, toRaw } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
+import { db } from '@/db/firebase';
+import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, updateDoc, type Unsubscribe, orderBy, query } from 'firebase/firestore';
 
-const STORAGE_KEY = 'cunts_cards_v1';
 type CardType = {
-    id: string;
+    id: string; // Firebase document id
     title: string;
     counter: number;
+    createdAt: Date,
 };
 
+const isLoading = ref<boolean>(false);
 const cards = ref<CardType[]>([]);
 
-onMounted(() => load());
+const unsubscribe = ref<Unsubscribe | null>(null);
+onMounted(() => {
+    isLoading.value = true;
+    
+    const q = query(collection(db, 'cards'), orderBy('createdAt', 'desc'));
 
-function load() {
-    cards.value = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '') || [];
+    unsubscribe.value = onSnapshot(q, (querySnapshot) => {
+        const _items: CardType[] = [];
+        querySnapshot.forEach((x) => _items.push({ id: x.id, ...x.data() as { title: string, counter: number, createdAt: Date } || { title: '', counter: 0, createdAt: new Date() } }));
+        
+        cards.value = _items;
+        isLoading.value = false;
+    }, 
+    (error) => {
+        console.error("Erreur temps réel :", error);
+        isLoading.value = false;
+    });
+});
+
+onUnmounted(() => unsubscribe.value?.());
+
+async function addCard() {
+    const cardData = { title: '', counter: 0, createdAt: new Date() };
+    
+    try {
+        const docRef = await addDoc(collection(db, "cards"), cardData);
+    } 
+    catch (error) {
+        console.error("Erreur lors de l'ajout :", error);
+    }
 }
 
-function save() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(toRaw(cards.value)));
+async function deleteCard(card: CardType) {
+    const docRef = doc(db, "cards", card.id);
+    await deleteDoc(docRef);
 }
 
-function addCard() {
-    cards.value.unshift({ id: crypto.randomUUID(), title: '', counter: 0 });
-    save();
+async function updateTitle(card: CardType) {
+    const docRef = doc(db, "cards", card.id);
+    await updateDoc(docRef, { title: card.title });
 }
 
-function deleteCard(id: string) {
-    cards.value = cards.value.filter(x => x.id !== id);
-    save();
-}
-
-function increment(card: CardType) {
-    card.counter++;
+async function increment(card: CardType) {
+    const docRef = doc(db, "cards", card.id);
+    await updateDoc(docRef, { counter: card.counter + 1 });
     playUpdateAnimation(card);
-    save();
 }
 
-function decrement(card: CardType) {
-    card.counter--;
+async function decrement(card: CardType) {
+    const docRef = doc(db, "cards", card.id);
+    await updateDoc(docRef, { counter: card.counter - 1 });
     playUpdateAnimation(card);
-    save();
 }
 
 function playUpdateAnimation(card: CardType) {
@@ -331,5 +363,11 @@ function playUpdateAnimation(card: CardType) {
 .empty .big {
     font-size: 3rem;
     line-height: 1;
+}
+
+.loading {
+    text-align: center;
+    padding: 64px 0;
+    color: var(--muted);
 }
 </style>
