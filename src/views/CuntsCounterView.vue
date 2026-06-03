@@ -35,7 +35,12 @@
 
                     <div class="counter">
                         <v-btn class="counter-btn minus rounded" variant="outlined" icon="mdi-minus" size="small" tile @click="decrement(card)"/>
-                        <span :class="`counter-value${card.counter < 0 ? ' neg' : ''}`" :id="`val-${card.id}`">{{ card.counter }}</span>
+                        <v-number-input
+                            :id="`val-${card.id}`" :class="`counter-input counter-value${card.counter < 0 ? ' neg' : ''}`" style="max-width: fit-content;"
+                            v-model="card.counter" density="compact" variant="plain" control-variant="hidden" hide-details :min="0" :step="1"
+                            @update:model-value="counterChanged(card)"
+                        />
+                        <!-- <span :class="`counter-value${card.counter < 0 ? ' neg' : ''}`" :id="`val-${card.id}`">{{ card.counter }}</span> -->
                         <v-btn class="counter-btn plus rounded" variant="outlined" icon="mdi-plus" size="small" tile @click="increment(card)"/>
                     </div>
                 </div>
@@ -100,6 +105,13 @@ async function deleteCard(card: CardType) {
 async function updateTitle(card: CardType) {
     const docRef = doc(db, "cards", card.id);
     await updateDoc(docRef, { title: card.title });
+}
+
+async function counterChanged(card: CardType) {
+    card.counter ??= 0;
+    const docRef = doc(db, "cards", card.id);
+    await updateDoc(docRef, { counter: card.counter });
+    playUpdateAnimation(card);
 }
 
 async function increment(card: CardType) {
@@ -317,12 +329,17 @@ function playUpdateAnimation(card: CardType) {
 
 .counter-value {
     font-family: 'DM Mono', monospace;
-    font-size: 1.5rem;
     font-weight: 500;
     min-width: 48px;
     text-align: center;
     transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.15s;
     color: var(--text);
+}
+
+:deep(.counter-input .v-field__input) {
+    font-size: 1.5rem;
+    text-align: center;
+    padding: 0;
 }
 
 .counter-value.bump {
