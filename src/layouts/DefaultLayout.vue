@@ -3,7 +3,7 @@
         <v-app-bar class="px-4" app>
             <v-btn class="app-title" variant="text" prepend-icon="mdi-home" color="#E8FF47" to="/">
                 <template #prepend>
-                    <v-img src="/public/favicon.png" height="24px" width="24px"/>
+                    <v-img src="/favicon.png" height="24px" width="24px"/>
                 </template>
                 Cesi Games
             </v-btn>
