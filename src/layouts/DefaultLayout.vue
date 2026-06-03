@@ -1,7 +1,12 @@
 <template>
     <v-layout>
         <v-app-bar class="px-4" app>
-            <v-btn class="app-title" variant="text" prepend-icon="mdi-home" color="#E8FF47" to="/">Cesi Games</v-btn>
+            <v-btn class="app-title" variant="text" prepend-icon="mdi-home" color="#E8FF47" to="/">
+                <template #prepend>
+                    <v-img src="/public/favicon.png" height="24px" width="24px"/>
+                </template>
+                Cesi Games
+            </v-btn>
             <v-spacer></v-spacer>
 
             <span class="version-title mr-2">GEOCHAUD <span class="accent">⚡ Édition</span></span>
